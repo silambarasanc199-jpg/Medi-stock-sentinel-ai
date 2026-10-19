@@ -1,65 +1,175 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MediStock Sentinel AI</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#071321">
+  <meta name="description" content="MediStock Sentinel helps monitor medicine expiry and stockout risks.">
+  <title>MediStock Sentinel AI</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>MediStock Sentinel AI</h1>
-  <p>Pharmacy inventory agent. All sample records are <b>synthetic data</b>. Rule-based engine, not an LLM.</p>
-</header>
-<main>
-  <section class="metrics" id="metrics"></section>
-
-  <section>
-    <h2>Action drafts <span class="hint">need human review</span></h2>
-    <label>Reviewer name <input id="reviewer" placeholder="Required to approve or reject"></label>
-    <div id="drafts"></div>
-  </section>
-
-  <section>
-    <h2>Add medicine batch</h2>
-    <form id="form" novalidate>
-      <input id="name" placeholder="Medicine name">
-      <input id="sku" placeholder="SKU">
-      <input id="batch" placeholder="Batch number">
-      <label>Expiry date <input id="expiry" type="date"></label>
-      <input id="qty" type="number" min="0" step="1" placeholder="Quantity (units)">
-      <input id="usage" type="number" min="0" step="0.1" placeholder="Daily usage (units/day)">
-      <input id="reorder" type="number" min="0" step="1" placeholder="Reorder level (units)">
-      <input id="lead" type="number" min="0" step="1" placeholder="Lead time (days)">
-      <input id="cost" type="number" min="0" step="0.01" placeholder="Unit cost">
-      <button type="submit">Add batch</button>
-      <p id="error" role="alert"></p>
-    </form>
-  </section>
-
-  <section>
-    <h2>Inventory</h2>
-    <div class="bar">
-      <input id="search" type="search" placeholder="Search name, SKU or batch">
-      <select id="filter">
-        <option value="all">All</option><option value="expired">Expired</option>
-        <option value="near">Near expiry</option><option value="stockout">Stockout risk</option>
-        <option value="ok">No risk</option>
-      </select>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">✚</div>
+      <div>
+        <h1>MediStock Sentinel</h1>
+        <p>Pharmacy Inventory Intelligence</p>
+      </div>
     </div>
-    <div id="list"></div>
-  </section>
+    <span class="status"><span class="status-dot"></span> LOCAL DEMO</span>
+  </header>
 
-  <section>
-    <h2>Review history and activity</h2>
-    <ul id="log"></ul>
-    <div class="bar">
-      <button id="export" class="alt">Export data</button>
-      <button id="reset" class="alt">Reset demo data</button>
+  <main class="container">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">HEALTHCARE OPERATIONS AGENT</p>
+        <h2>Prevent waste.<br><span>Prevent stockouts.</span></h2>
+        <p class="muted">
+          Detect risky medicine batches, estimate stock shortages
+          and prepare inventory actions for human review.
+        </p>
+        <button id="refreshBtn" class="primary">Run inventory analysis ↗</button>
+      </div>
+      <div class="hero-symbol" aria-hidden="true">✚</div>
+    </section>
+
+    <div class="notice">
+      <strong>DEMO MODE</strong>
+      <span>Sample inventory only. Review all recommendations before taking action.</span>
     </div>
-  </section>
-</main>
-<footer>Estimates use your entered data and fixed assumptions. They are not measured results.</footer>
-<script src="app.js"></script>
+
+    <section class="metrics">
+      <article class="metric">
+        <span>Total units</span>
+        <strong id="totalUnits">0</strong>
+        <small>Recorded batch stock</small>
+      </article>
+      <article class="metric">
+        <span>Expiry alerts</span>
+        <strong id="expiryCount">0</strong>
+        <small>Expired or expiring soon</small>
+      </article>
+      <article class="metric">
+        <span>Stockout risks</span>
+        <strong id="stockoutCount">0</strong>
+        <small>Medicines needing review</small>
+      </article>
+      <article class="metric">
+        <span>Pending actions</span>
+        <strong id="draftCount">0</strong>
+        <small>Awaiting human review</small>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">AGENT WORKFLOW</p>
+          <h2>Action centre</h2>
+        </div>
+        <span id="lastRun" class="muted small">Analysis not run yet</span>
+      </div>
+      <p class="muted small">
+        Recommendations are drafts. Approval does not place orders or change physical stock.
+      </p>
+      <div id="actions" class="actions"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">BATCH MANAGEMENT</p>
+          <h2>Inventory</h2>
+        </div>
+        <input id="searchInput" class="search" type="search"
+          placeholder="Search medicine or batch..." aria-label="Search inventory">
+      </div>
+
+      <div class="filters">
+        <button class="filter active" data-filter="all">All batches</button>
+        <button class="filter" data-filter="expiry">Expiry risk</button>
+        <button class="filter" data-filter="stockout">Stockout risk</button>
+      </div>
+
+      <div id="inventory" class="inventory"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">REGISTER STOCK</p>
+          <h2>Add medicine batch</h2>
+        </div>
+      </div>
+
+      <form id="batchForm" class="form-grid">
+        <label>
+          Medicine name
+          <input name="name" required maxlength="100" placeholder="e.g. Paracetamol 500mg">
+        </label>
+        <label>
+          SKU / medicine code
+          <input name="sku" required maxlength="40" placeholder="e.g. PARA-500">
+        </label>
+        <label>
+          Batch number
+          <input name="batch" required maxlength="40" placeholder="e.g. B-102">
+        </label>
+        <label>
+          Expiry date
+          <input name="expiry" type="date" required>
+        </label>
+        <label>
+          Quantity on hand
+          <input name="qty" type="number" min="0" step="1" required placeholder="100">
+        </label>
+        <label>
+          Average daily usage
+          <input name="daily" type="number" min="0" step="0.1" required placeholder="5">
+        </label>
+        <label>
+          Reorder level
+          <input name="reorder" type="number" min="0" step="1" required placeholder="50">
+        </label>
+        <label>
+          Supplier lead time (days)
+          <input name="lead" type="number" min="0" max="365" step="1" required value="7">
+        </label>
+        <label>
+          Unit cost (₹)
+          <input name="cost" type="number" min="0" step="0.01" required value="1">
+        </label>
+        <div class="form-action">
+          <button type="submit" class="primary">Add batch</button>
+        </div>
+      </form>
+      <p class="muted small">
+        Enter accurate inventory data. This demo stores data in this browser only.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">AUDIT TRAIL</p>
+          <h2>Activity history</h2>
+        </div>
+        <button id="exportBtn" class="secondary">Export JSON</button>
+      </div>
+      <div id="history" class="history"></div>
+      <div class="footer-actions">
+        <button id="resetBtn" class="danger">Reset demo data</button>
+      </div>
+    </section>
+
+    <footer>
+      <p>MediStock Sentinel AI · Hackathon MVP</p>
+      <p>Decision support only · Not medical advice · No automatic ordering</p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
 </body>
 </html>
