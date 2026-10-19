@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediStock Sentinel AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>MediStock Sentinel AI</h1>
+  <p>Pharmacy inventory agent. All sample records are <b>synthetic data</b>. Rule-based engine, not an LLM.</p>
+</header>
+<main>
+  <section class="metrics" id="metrics"></section>
+
+  <section>
+    <h2>Action drafts <span class="hint">need human review</span></h2>
+    <label>Reviewer name <input id="reviewer" placeholder="Required to approve or reject"></label>
+    <div id="drafts"></div>
+  </section>
+
+  <section>
+    <h2>Add medicine batch</h2>
+    <form id="form" novalidate>
+      <input id="name" placeholder="Medicine name">
+      <input id="sku" placeholder="SKU">
+      <input id="batch" placeholder="Batch number">
+      <label>Expiry date <input id="expiry" type="date"></label>
+      <input id="qty" type="number" min="0" step="1" placeholder="Quantity (units)">
+      <input id="usage" type="number" min="0" step="0.1" placeholder="Daily usage (units/day)">
+      <input id="reorder" type="number" min="0" step="1" placeholder="Reorder level (units)">
+      <input id="lead" type="number" min="0" step="1" placeholder="Lead time (days)">
+      <input id="cost" type="number" min="0" step="0.01" placeholder="Unit cost">
+      <button type="submit">Add batch</button>
+      <p id="error" role="alert"></p>
+    </form>
+  </section>
+
+  <section>
+    <h2>Inventory</h2>
+    <div class="bar">
+      <input id="search" type="search" placeholder="Search name, SKU or batch">
+      <select id="filter">
+        <option value="all">All</option><option value="expired">Expired</option>
+        <option value="near">Near expiry</option><option value="stockout">Stockout risk</option>
+        <option value="ok">No risk</option>
+      </select>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section>
+    <h2>Review history and activity</h2>
+    <ul id="log"></ul>
+    <div class="bar">
+      <button id="export" class="alt">Export data</button>
+      <button id="reset" class="alt">Reset demo data</button>
+    </div>
+  </section>
+</main>
+<footer>Estimates use your entered data and fixed assumptions. They are not measured results.</footer>
+<script src="app.js"></script>
+</body>
+</html>
